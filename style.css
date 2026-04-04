@@ -1,0 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'JetBrains Mono', monospace, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    color: #D1D5DB;
+    overflow: hidden;
+}
+
+#sidebar {
+    width: 260px;
+    background-color: #171717;
+    height: 100%;
+    flex-shrink: 0;
+    position: relative;
+    transition: width 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#sidebar.collapsed {
+    width: 0;
+}
+
+#sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 16px 0 16px; /* Bottom padding 0 */
+    height: 50px; /* Reduced from 60px */
+}
+
+#atlas-logo {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: #D1D5DB;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+#sidebar.collapsed #atlas-logo {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#sidebar-nav {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    padding: 2px 8px; /* Shifted further left to 8px */
+    align-items: center;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    width: 28px; /* More compact icon container from 40px */
+    height: 28px; /* More compact icon container from 40px */
+    border-radius: 14px; /* Maintain pill shape for 28px height */
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    white-space: nowrap;
+    background-color: transparent;
+}
+
+.nav-item:hover {
+    background-color: #2A2A2A;
+}
+
+.nav-item.active {
+    width: fit-content;
+    padding: 0 16px 0 0; /* Padding for the bill: icon starts with 0 then 16px right */
+    background-color: #2A2A2A;
+}
+
+.nav-icon {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #D1D5DB;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.nav-item.active .nav-icon {
+    color: #ECECEC;
+}
+
+.nav-icon svg {
+    width: 13px;
+    height: 13px;
+}
+
+.nav-label {
+    font-family: "Georgia", "Times New Roman", serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ECECEC;
+    opacity: 0;
+    margin-left: 0;
+    transform: translateX(-5px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+
+.nav-item.active .nav-label {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+#sidebar-actions {
+    position: absolute;
+    top: 16px;
+    left: 215px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+}
+
+#sidebar-actions button {
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #D1D5DB;
+    transition: all 0.2s;
+}
+
+#sidebar-actions #new-chat-btn {
+    background-color: #2A2A2A;
+    border-radius: 10px;
+    color: #ECECEC;
+    display: none; /* Hidden when sidebar is open */
+}
+
+/* Specific styling for the plus button when collapsed in the pill */
+#sidebar.collapsed ~ #sidebar-actions #new-chat-btn {
+    display: flex;
+    background-color: transparent;
+    border-radius: 8px;
+}
+
+#sidebar-actions button:hover {
+    background-color: #2A2A2A;
+    color: #ECECEC;
+}
+
+#sidebar.collapsed ~ #sidebar-actions {
+    left: 12px;
+    top: 12px;
+    flex-direction: row;
+    background-color: #171717;
+    padding: 4px 8px;
+    border-radius: 12px; /* Matching the rounded-square look of the reference image */
+    border: 1px solid #2A2A2A;
+    gap: 4px;
+}
+
+#sidebar.collapsed ~ #sidebar-actions button {
+    padding: 6px;
+}
+
+#workspace {
+    flex: 1;
+    height: 100%;
+    background-color: #212121;
+    overflow: auto;
+}
