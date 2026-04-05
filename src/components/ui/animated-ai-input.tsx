@@ -16,6 +16,7 @@ import {
 } from "./dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
 import AtlasLogo from "../../assets/logo.png";
+import { ModelInfo, ModelInfoCard } from "./model-info-card";
 
 interface UseAutoResizeTextareaProps {
     minHeight: number;
@@ -107,6 +108,19 @@ export function AI_Prompt() {
         maxHeight: 300,
     });
     const [selectedModel, setSelectedModel] = useState("Auto");
+    const [hoveredModel, setHoveredModel] = useState<string | null>(null);
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleMouseEnter = (model: string) => {
+        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+        setHoveredModel(model);
+    };
+
+    const handleMouseLeave = () => {
+        hoverTimeoutRef.current = setTimeout(() => {
+            setHoveredModel(null);
+        }, 100);
+    };
 
     useEffect(() => {
         // Automatically focus the writing cursor when switches to chat
@@ -163,7 +177,7 @@ export function AI_Prompt() {
     );
 
     const MODEL_ICONS: Record<string, React.ReactNode> = {
-        "Auto": <img src={AtlasLogo} alt="Atlas Auto" className="w-4 h-4 rounded-[3px] object-cover dark:invert invert" />,
+        "Auto": <img src={AtlasLogo} alt="Atlas Auto" className="w-4 h-4 rounded-[3px] object-contain dark:invert invert [image-rendering:-webkit-optimize-contrast] brightness-110" />,
         "Claude Haiku 4.5": CLAUDE_ICON,
         "Claude Sonnet 4.6": CLAUDE_ICON,
         "Claude Opus 4.6": CLAUDE_ICON,
@@ -171,6 +185,73 @@ export function AI_Prompt() {
         "Gemini 3 Flash": GEMINI_ICON,
         "Gemini 3.1 Flash Lite": GEMINI_ICON,
         "Gemini 3.1 Pro": GEMINI_ICON,
+    };
+
+    const MODEL_DETAILS: Record<string, ModelInfo> = {
+        "Auto": {
+            name: "Atlas Auto",
+            description: "Automatically selects the most efficient model for your specific task, balancing speed, cost, and intelligence.",
+            speed: "Optimized",
+            intelligence: "Adaptive",
+            creditCost: "Variable",
+            context: "Managed"
+        },
+        "Claude Haiku 4.5": {
+            name: "Claude Haiku 4.5",
+            description: "Anthropic's fastest and most efficient model, delivering near-frontier intelligence at a fraction of the cost. Perfect for rapid-fire tasks and high-volume automation.",
+            speed: "Fast",
+            intelligence: "High",
+            creditCost: "$",
+            context: "200k"
+        },
+        "Claude Sonnet 4.6": {
+            name: "Claude Sonnet 4.6",
+            description: "The ideal balance between speed and intelligence. Sonnet 4.6 excels at complex reasoning, coding, and creative writing while remaining highly responsive.",
+            speed: "Balanced",
+            intelligence: "Very High",
+            creditCost: "$$",
+            context: "200k"
+        },
+        "Claude Opus 4.6": {
+            name: "Claude Opus 4.6",
+            description: "Anthropic's most powerful model for highly complex tasks. Opus provides unmatched reasoning capabilities and deep task comprehension for the most demanding workloads.",
+            speed: "Steady",
+            intelligence: "Elite",
+            creditCost: "$$$",
+            context: "200k"
+        },
+        "GPT 5.4": {
+            name: "GPT 5.4",
+            description: "The latest frontier model from OpenAI. GPT 5.4 offers exceptional general-purpose intelligence, advanced multimodal capabilities, and state-of-the-art developer tools.",
+            speed: "Fast",
+            intelligence: "Elite",
+            creditCost: "$$$",
+            context: "128k"
+        },
+        "Gemini 3 Flash": {
+            name: "Gemini 3 Flash",
+            description: "Google's high-speed multimodal model. Built for speed and efficiency, it excels at processing large amounts of data quickly with a massive 1M token context window.",
+            speed: "Blazing",
+            intelligence: "High",
+            creditCost: "$",
+            context: "1M"
+        },
+        "Gemini 3.1 Flash Lite": {
+            name: "Gemini 3.1 Flash Lite",
+            description: "An ultra-distilled version of Gemini Flash optimized for simple, repetitive tasks. It offers near-instant responses with industry-leading efficiency.",
+            speed: "Instant",
+            intelligence: "Moderate",
+            creditCost: "Free",
+            context: "1M"
+        },
+        "Gemini 3.1 Pro": {
+            name: "Gemini 3.1 Pro",
+            description: "Google's most capable model for complex reasoning and creative tasks. Featuring an expansive 2M context window, it's perfect for analyzing massive codebases or long documents.",
+            speed: "Balanced",
+            intelligence: "Elite",
+            creditCost: "$$",
+            context: "2M"
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -184,7 +265,7 @@ export function AI_Prompt() {
 
     return (
         <div className="w-full max-w-2xl px-4">
-            <div className="bg-workspace/40 border border-white/10 rounded-2xl p-1.5 w-full shadow-2xl backdrop-blur-sm">
+            <div className="bg-workspace/40 border border-white/10 rounded-2xl p-1.5 w-full shadow-2xl backdrop-blur-md antialiased">
                 <div className="relative">
                     <div className="relative flex flex-col">
                         <div
@@ -283,41 +364,54 @@ export function AI_Prompt() {
                                                 </AnimatePresence>
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent
-                                            className={cn(
-                                                "min-w-[10rem] max-h-[300px] overflow-y-auto",
-                                                "border-accent",
-                                                "bg-workspace text-text shadow-xl"
-                                            )}
-                                        >
-                                            {AI_PROVIDERS.map((provider, index) => (
-                                                <React.Fragment key={provider.name}>
-                                                    {provider.name !== "Default" && (
-                                                        <DropdownMenuLabel className="text-[10px] text-text/40 font-semibold px-2 py-1 uppercase tracking-wider">
-                                                            {provider.name}
-                                                        </DropdownMenuLabel>
-                                                    )}
-                                                    <DropdownMenuGroup>
-                                                        {provider.models.map((model) => (
-                                                            <DropdownMenuItem
-                                                                key={model}
-                                                                onSelect={() => setSelectedModel(model)}
-                                                                className="flex items-center justify-between gap-2 cursor-pointer hover:bg-accent"
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    {MODEL_ICONS[model] || <Bot className="w-4 h-4 opacity-50" />}
-                                                                    <span>{model}</span>
-                                                                </div>
-                                                                {selectedModel === model && (
-                                                                    <Check className="w-4 h-4 text-text" />
-                                                                )}
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                    </DropdownMenuGroup>
-                                                    {index < AI_PROVIDERS.length - 1 && <DropdownMenuSeparator className="bg-accent" />}
-                                                </React.Fragment>
-                                            ))}
-                                        </DropdownMenuContent>
+                                         <DropdownMenuContent
+                                             className={cn(
+                                                 "min-w-[10rem] border-accent bg-workspace text-text shadow-xl overflow-visible p-0"
+                                             )}
+                                         >
+                                             <div className="max-h-[300px] overflow-y-auto p-1 relative">
+                                                 {AI_PROVIDERS.map((provider, index) => (
+                                                     <React.Fragment key={provider.name}>
+                                                         {provider.name !== "Default" && (
+                                                             <DropdownMenuLabel className="text-[10px] text-text/40 font-semibold px-2 py-1 uppercase tracking-wider">
+                                                                 {provider.name}
+                                                             </DropdownMenuLabel>
+                                                         )}
+                                                         <DropdownMenuGroup>
+                                                             {provider.models.map((model) => (
+                                                                 <DropdownMenuItem
+                                                                     key={model}
+                                                                     onSelect={() => setSelectedModel(model)}
+                                                                     onMouseEnter={() => handleMouseEnter(model)}
+                                                                     onMouseLeave={handleMouseLeave}
+                                                                     className="flex items-center justify-between gap-2 cursor-pointer hover:bg-accent"
+                                                                 >
+                                                                     <div className="flex items-center gap-2">
+                                                                         {MODEL_ICONS[model] || <Bot className="w-4 h-4 opacity-50" />}
+                                                                         <span>{model}</span>
+                                                                     </div>
+                                                                     {selectedModel === model && (
+                                                                         <Check className="w-4 h-4 text-text" />
+                                                                     )}
+                                                                 </DropdownMenuItem>
+                                                             ))}
+                                                         </DropdownMenuGroup>
+                                                         {index < AI_PROVIDERS.length - 1 && <DropdownMenuSeparator className="bg-accent" />}
+                                                     </React.Fragment>
+                                                 ))}
+                                             </div>
+
+                                             <AnimatePresence>
+                                                 {hoveredModel && MODEL_DETAILS[hoveredModel] && (
+                                                     <div className="absolute left-[calc(100%+12px)] top-0 hidden md:block">
+                                                         <ModelInfoCard 
+                                                             info={MODEL_DETAILS[hoveredModel]} 
+                                                             icon={MODEL_ICONS[hoveredModel]}
+                                                         />
+                                                     </div>
+                                                 )}
+                                             </AnimatePresence>
+                                         </DropdownMenuContent>
                                     </DropdownMenu>
 
                                     <button
