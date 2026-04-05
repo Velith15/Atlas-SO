@@ -285,7 +285,7 @@ export function AI_Prompt() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent
                                             className={cn(
-                                                "min-w-[10rem]",
+                                                "min-w-[10rem] max-h-[300px] overflow-y-auto",
                                                 "border-accent",
                                                 "bg-workspace text-text shadow-xl"
                                             )}
