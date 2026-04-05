@@ -16,6 +16,9 @@ import {
 import { NewFolderModal } from './components/ui/new-folder-modal';
 import { NewNoteModal } from './components/ui/new-note-modal';
 import { NoteEditor } from './components/ui/note-editor';
+import { ThinkingAnimation } from './components/ui/thinking-animation';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface FolderData {
@@ -35,6 +38,22 @@ interface NoteData {
   createdAt: Date;
   isPinned?: boolean;
 }
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+const modelMapping: Record<string, string> = {
+  "Auto": "openrouter/auto",
+  "Claude Haiku 4.5": "anthropic/claude-3-haiku",
+  "Claude Sonnet 4.6": "anthropic/claude-3.5-sonnet",
+  "Claude Opus 4.6": "anthropic/claude-3-opus",
+  "GPT 5.4": "openai/gpt-4o",
+  "Gemini 3 Flash": "google/gemini-flash-1.5",
+  "Gemini 3.1 Flash Lite": "google/gemini-flash-1.5-exp",
+  "Gemini 3.1 Pro": "google/gemini-pro-1.5",
+};
 
 const ExactNoteIcon = ({ size = 16, className = "", strokeWidth = 2.4 }) => (
   <svg 
@@ -66,6 +85,91 @@ function App() {
   const [isNewNoteModalOpen, setIsNewNoteModalOpen] = useState(false);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
+
+  // Chat state
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll chat
+  React.useEffect(() => {
+    if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isThinking]);
+
+  const handleSendMessage = async (content: string, model: string) => {
+    const userMessage: Message = { role: 'user', content };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    setIsThinking(true);
+
+    // 30 second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+        console.log("Sending message to OpenRouter...", { model, messageCount: updatedMessages.length });
+        
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer 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`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://atlas-so.vercel.app",
+                "X-Title": "Atlas"
+            },
+            body: JSON.stringify({
+                model: modelMapping[model] || "openrouter/auto",
+                messages: [
+                    { 
+                        role: 'system', 
+                        content: 'You are Atlas, a professional, friendly, and supportive AI assistant. Your tone should be warm and helpful, like a knowledgeable colleague. Be concise but maintain a human touch; avoid robotic efficiency statements. Aim for 1-3 sentences. When asked who you are, give a warm greeting and explain that you\'re Atlas, the built-in assistant here to help make their workspace smoother.' 
+                    },
+                    ...updatedMessages
+                ]
+            }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("OpenRouter API Error:", errorData);
+            setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: `Error: ${errorData.error?.message || response.statusText}. Please try again.` 
+            }]);
+            return;
+        }
+
+        const data = await response.json();
+        console.log("OpenRouter Response received:", data);
+        
+        if (data.choices && data.choices[0]) {
+            const aiMessage: Message = { 
+                role: 'assistant', 
+                content: data.choices[0].message.content 
+            };
+            setMessages(prev => [...prev, aiMessage]);
+        } else {
+            console.warn("OpenRouter returned an empty response:", data);
+            setMessages(prev => [...prev, { role: 'assistant', content: "No response received from AI." }]);
+        }
+    } catch (error: any) {
+        if (error.name === 'AbortError') {
+            console.error("Request timed out");
+            setMessages(prev => [...prev, { role: 'assistant', content: "Request timed out. Please check your connection or try a different model." }]);
+        } else {
+            console.error("Network Error calling OpenRouter:", error);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Network error. Please check your connection." }]);
+        }
+    } finally {
+        setIsThinking(false);
+        clearTimeout(timeoutId);
+    }
+  };
 
   // History state
   const [history, setHistory] = useState<{ path: { id: string; name: string }[]; activeNoteId: string | null }[]>([{ path: [], activeNoteId: null }]);
@@ -666,20 +770,59 @@ function App() {
       </div>
 
       {/* Core Workspace */}
-      <main className="flex-1 h-full bg-background overflow-auto flex flex-col items-center justify-center relative">
+      <main className="flex-1 h-full bg-background overflow-hidden flex flex-col relative">
         {activeTab === 'chat' ? (
-          <div className="w-full h-full flex flex-col items-center justify-center pb-8 max-w-2xl px-4 text-center">
-            <div className="flex-1 flex flex-col items-center justify-center mb-8 animate-in fade-in zoom-in duration-500">
-               <h1 className="text-[34px] text-[#ECECEC] font-serif tracking-tight">
-                 {randomGreeting}
-               </h1>
+          <div className="w-full h-full flex flex-col items-center relative overflow-hidden">
+            <div ref={scrollRef} className="flex-1 w-full overflow-y-auto flex flex-col scroll-smooth custom-scrollbar">
+              <div className="w-full max-w-3xl mx-auto px-4 pt-16 pb-8 flex flex-col gap-6">
+                {messages.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center mb-8 animate-in fade-in zoom-in duration-500">
+                    <h1 className="text-[34px] text-[#ECECEC] font-serif tracking-tight">
+                      {randomGreeting}
+                    </h1>
+                  </div>
+                ) : (
+                  <>
+                    {messages.map((msg, i) => (
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "flex flex-col w-full",
+                          msg.role === 'user' ? "items-end" : "items-start"
+                        )}
+                      >
+                        <div className={cn(
+                          "max-w-[85%] px-4 py-2 rounded-2xl text-[14px] leading-relaxed",
+                          msg.role === 'user' 
+                            ? "bg-accent/30 text-text border border-white/5 shadow-sm" 
+                            : "bg-transparent text-[#E0E0E0]/80 border-none px-0"
+                        )}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                              ul: ({children}) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+                              ol: ({children}) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+                              strong: ({children}) => <strong className="font-medium text-text">{children}</strong>,
+                              code: ({children}) => <code className="bg-accent/20 px-1 rounded font-mono text-accent text-[12px]">{children}</code>
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    ))}
+                    {isThinking && <ThinkingAnimation />}
+                  </>
+                )}
+              </div>
             </div>
-            <div className="w-full flex flex-col items-center justify-end">
-              <AI_Prompt />
+            <div className="w-full flex flex-col items-center justify-end pb-8">
+              <AI_Prompt onSendMessage={handleSendMessage} isLoading={isThinking} />
             </div>
           </div>
         ) : activeTab === 'home' ? (
-          <div className="w-full h-full flex flex-col items-center relative overflow-y-auto">
+          <div className="w-full h-full flex flex-col items-center relative overflow-y-auto custom-scrollbar">
               {/* Premium Browser-like Navigation Header */}
               <div className="absolute top-3 left-0 px-4 z-20 flex items-center gap-3 select-none">
                 <div className="flex items-center gap-1.5">

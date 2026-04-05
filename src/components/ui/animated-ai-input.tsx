@@ -101,7 +101,7 @@ const OPENAI_ICON = (
     </>
 );
 
-export function AI_Prompt() {
+export function AI_Prompt({ onSendMessage, isLoading }: { onSendMessage?: (message: string, model: string) => void; isLoading?: boolean }) {
     const [value, setValue] = useState("");
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({
         minHeight: 72,
@@ -121,6 +121,14 @@ export function AI_Prompt() {
             setHoveredModel(null);
         }, 100);
     };
+
+    const handleSubmit = useCallback(() => {
+        if (value.trim() && !isLoading) {
+            onSendMessage?.(value.trim(), selectedModel);
+            setValue("");
+            adjustHeight(true);
+        }
+    }, [value, selectedModel, isLoading, onSendMessage, adjustHeight]);
 
     useEffect(() => {
         // Automatically focus the writing cursor when switches to chat
@@ -255,12 +263,10 @@ export function AI_Prompt() {
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey && value.trim()) {
+        if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            setValue("");
-            adjustHeight(true);
-            // Here you can add message sending     
-           }
+            handleSubmit();
+        }
     };
 
     return (
@@ -275,10 +281,12 @@ export function AI_Prompt() {
                             <Textarea
                                 id="ai-input-15"
                                 value={value}
-                                placeholder={"What can I do for you?"}
+                                placeholder={isLoading ? "Thinking..." : "What can I do for you?"}
+                                disabled={isLoading}
                                 className={cn(
                                     "w-full rounded-xl rounded-b-none px-4 py-3 bg-transparent border-none text-text placeholder:text-text/30 resize-none focus-visible:ring-0 focus-visible:ring-offset-0",
-                                    "min-h-[72px]"
+                                    "min-h-[72px]",
+                                    isLoading && "opacity-50"
                                 )}
                                 ref={textareaRef}
                                 onKeyDown={handleKeyDown}
@@ -328,7 +336,7 @@ export function AI_Prompt() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
+                                        <DropdownMenuTrigger asChild disabled={isLoading}>
                                             <Button
                                                 variant="ghost"
                                                 className="flex items-center gap-1 h-8 pl-1 pr-2 text-xs rounded-md text-text hover:bg-accent focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-accent"
@@ -419,20 +427,17 @@ export function AI_Prompt() {
                                         className={cn(
                                             "rounded-lg p-2 bg-accent",
                                             "hover:bg-accent/80 focus-visible:ring-1 focus-visible:ring-offset-0",
-                                            "transition-all duration-200 shadow-md"
+                                            "transition-all duration-200 shadow-md",
+                                            (isLoading || !value.trim()) && "opacity-50 cursor-not-allowed"
                                         )}
                                         aria-label="Send message"
-                                        disabled={!value.trim()}
-                                        onClick={() => {
-                                            if (!value.trim()) return;
-                                            setValue("");
-                                            adjustHeight(true);
-                                        }}
+                                        disabled={isLoading || !value.trim()}
+                                        onClick={handleSubmit}
                                     >
                                         <ArrowRight
                                             className={cn(
                                                 "w-4 h-4 text-text transition-opacity duration-200",
-                                                value.trim()
+                                                value.trim() && !isLoading
                                                     ? "opacity-100"
                                                     : "opacity-30"
                                             )}
