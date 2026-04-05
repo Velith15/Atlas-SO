@@ -114,10 +114,8 @@ function App() {
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": window.location.origin,
-                "X-Title": "Atlas"
+                "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY || "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"}`,
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 model: modelMapping[model] || "openrouter/auto",
